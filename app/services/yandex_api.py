@@ -92,6 +92,5 @@ async def create_simple_report(
         worksheet.write(row, 2, '', total_format)
         for column, width in enumerate(COLUMN_WIDTHS):
             worksheet.set_column(column, column, width)
-    output.seek(0)
     await yandex_client.upload_file(upload_url, output.getvalue())
     return await yandex_client.publish_file(file_path)
