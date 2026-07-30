@@ -40,57 +40,59 @@ async def create_simple_report(
     upload_url, file_path = await yandex_client.create_excel_file(
         FILE_NAME.format(date=report_date)
     )
-    output = io.BytesIO()
-    with xlsxwriter.Workbook(output, {'in_memory': True}) as workbook:
-        worksheet = workbook.add_worksheet(SHEET_NAME)
-        title_format = workbook.add_format({
-            'bold': True,
-            'font_size': 14,
-            'align': 'center',
-            'valign': 'vcenter',
-            'border': 1,
-        })
-        header_format = workbook.add_format({
-            'bold': True,
-            'bg_color': HEADER_BG_COLOR,
-            'font_color': 'white',
-            'align': 'center',
-            'valign': 'vcenter',
-            'border': 1,
-        })
-        cell_format = workbook.add_format({
-            'border': 1,
-            'valign': 'vcenter',
-        })
-        total_format = workbook.add_format({
-            'bold': True,
-            'border': 1,
-            'valign': 'vcenter',
-        })
-        worksheet.merge_range(
-            TITLE_ROW,
-            0,
-            TITLE_ROW,
-            len(TABLE_HEADERS) - 1,
-            REPORT_TITLE.format(date=report_date),
-            title_format,
-        )
-        worksheet.write_row(HEADERS_ROW, 0, TABLE_HEADERS, header_format)
-        row = FIRST_DATA_ROW
-        for project in projects:
-            worksheet.write(row, 0, project.name, cell_format)
-            worksheet.write(
-                row,
-                1,
-                format_time_delta(project.close_date - project.create_date),
-                cell_format,
+    with io.BytesIO() as output:
+        with xlsxwriter.Workbook(output, {'in_memory': True}) as workbook:
+            worksheet = workbook.add_worksheet(SHEET_NAME)
+            title_format = workbook.add_format({
+                'bold': True,
+                'font_size': 14,
+                'align': 'center',
+                'valign': 'vcenter',
+                'border': 1,
+            })
+            header_format = workbook.add_format({
+                'bold': True,
+                'bg_color': HEADER_BG_COLOR,
+                'font_color': 'white',
+                'align': 'center',
+                'valign': 'vcenter',
+                'border': 1,
+            })
+            cell_format = workbook.add_format({
+                'border': 1,
+                'valign': 'vcenter',
+            })
+            total_format = workbook.add_format({
+                'bold': True,
+                'border': 1,
+                'valign': 'vcenter',
+            })
+            worksheet.merge_range(
+                TITLE_ROW,
+                0,
+                TITLE_ROW,
+                len(TABLE_HEADERS) - 1,
+                REPORT_TITLE.format(date=report_date),
+                title_format,
             )
-            worksheet.write(row, 2, project.description, cell_format)
-            row += 1
-        worksheet.write(row, 0, TOTAL_LABEL, total_format)
-        worksheet.write(row, 1, len(projects), total_format)
-        worksheet.write(row, 2, '', total_format)
-        for column, width in enumerate(COLUMN_WIDTHS):
-            worksheet.set_column(column, column, width)
-    await yandex_client.upload_file(upload_url, output.getvalue())
+            worksheet.write_row(HEADERS_ROW, 0, TABLE_HEADERS, header_format)
+            row = FIRST_DATA_ROW
+            for project in projects:
+                worksheet.write(row, 0, project.name, cell_format)
+                worksheet.write(
+                    row,
+                    1,
+                    format_time_delta(
+                        project.close_date - project.create_date
+                    ),
+                    cell_format,
+                )
+                worksheet.write(row, 2, project.description, cell_format)
+                row += 1
+            worksheet.write(row, 0, TOTAL_LABEL, total_format)
+            worksheet.write(row, 1, len(projects), total_format)
+            worksheet.write(row, 2, '', total_format)
+            for column, width in enumerate(COLUMN_WIDTHS):
+                worksheet.set_column(column, column, width)
+        await yandex_client.upload_file(upload_url, output.getvalue())
     return await yandex_client.publish_file(file_path)
