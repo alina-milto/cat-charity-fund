@@ -1,5 +1,7 @@
+import logging
 from http import HTTPStatus
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +14,9 @@ from app.services.yandex_api import create_simple_report
 
 PROJECTS_NOT_FOUND = (
     'Закрытые проекты не найдены, отчёт формировать не из чего.')
-REPORT_ERROR = 'Не удалось сформировать отчёт: {error}'
+YANDEX_DISK_ERROR = 'Yandex Disk is unavailable, please try again later.'
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -43,10 +47,9 @@ async def create_report(
         )
     try:
         return await create_simple_report(projects, yandex_client)
-    except HTTPException:
-        raise
-    except Exception as error:
+    except httpx.HTTPError:
+        logger.exception('Failed to upload the report to Yandex Disk.')
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=REPORT_ERROR.format(error=error),
+            status_code=HTTPStatus.BAD_GATEWAY,
+            detail=YANDEX_DISK_ERROR,
         )
