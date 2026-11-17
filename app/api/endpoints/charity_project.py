@@ -71,7 +71,7 @@ async def update_charity_project(
     charity_project = await check_charity_project_exists(project_id, session)
     check_project_is_open(charity_project)
     if obj_in.name is not None:
-        await check_name_duplicate(obj_in.name, session)
+        await check_name_duplicate(obj_in.name, session, project_id)
     if obj_in.full_amount is not None:
         check_full_amount_not_less_than_invested(
             charity_project, obj_in.full_amount

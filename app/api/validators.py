@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import Optional
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,11 +11,12 @@ from app.models.charity_project import CharityProject
 async def check_name_duplicate(
     project_name: str,
     session: AsyncSession,
+    project_id: Optional[int] = None,
 ) -> None:
-    project_id = await charity_project_crud.get_project_id_by_name(
+    existing_id = await charity_project_crud.get_project_id_by_name(
         project_name, session
     )
-    if project_id is not None:
+    if existing_id is not None and existing_id != project_id:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail='Проект с таким именем уже существует!',
