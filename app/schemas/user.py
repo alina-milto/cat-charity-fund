@@ -1,13 +1,15 @@
+"""Pydantic schemas for users (fastapi-users)."""
+
 from fastapi_users import schemas
 
 
 class UserRead(schemas.BaseUser[int]):
-    pass
+    """User as returned by the API."""
 
 
 class UserCreate(schemas.BaseUserCreate):
-    pass
+    """Request body for registration."""
 
 
 class UserUpdate(schemas.BaseUserUpdate):
-    pass
+    """Request body for updating a user."""

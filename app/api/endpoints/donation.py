@@ -1,3 +1,5 @@
+"""Donation endpoints."""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +24,7 @@ router = APIRouter()
 async def get_all_donations(
     session: AsyncSession = Depends(get_async_session),
 ):
+    """Return all donations with investment details. Superusers only."""
     return await donation_crud.get_multi(session)
 
 
@@ -35,11 +38,13 @@ async def create_donation(
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_user),
 ):
+    """Make a donation and invest it in open projects."""
     new_donation = await donation_crud.create(
         donation,
         session,
         user,
-        commit=False)
+        commit=False,
+    )
     sources = await charity_project_crud.get_not_fully_invested(session)
     await investing(new_donation, sources, session)
     await session.commit()
@@ -56,4 +61,5 @@ async def get_my_donations(
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_user),
 ):
+    """Return donations of the current user."""
     return await donation_crud.get_by_user(session, user)

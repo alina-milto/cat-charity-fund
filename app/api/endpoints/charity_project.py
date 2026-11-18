@@ -1,3 +1,5 @@
+"""Charity project endpoints."""
+
 from datetime import datetime
 
 from fastapi import APIRouter, Depends
@@ -33,6 +35,7 @@ router = APIRouter()
 async def get_all_charity_projects(
     session: AsyncSession = Depends(get_async_session),
 ):
+    """Return all charity projects. Available to everyone."""
     return await charity_project_crud.get_multi(session)
 
 
@@ -46,6 +49,10 @@ async def create_charity_project(
     charity_project: CharityProjectCreate,
     session: AsyncSession = Depends(get_async_session),
 ):
+    """Create a project and fund it from open donations.
+
+    Superusers only.
+    """
     await check_name_duplicate(charity_project.name, session)
     new_project = await charity_project_crud.create(
         charity_project, session, commit=False
@@ -68,6 +75,12 @@ async def update_charity_project(
     obj_in: CharityProjectUpdate,
     session: AsyncSession = Depends(get_async_session),
 ):
+    """Update an open project.
+
+    The new amount cannot be less than already invested; a project
+    whose amount becomes equal to the invested amount is closed.
+    Superusers only.
+    """
     charity_project = await check_charity_project_exists(project_id, session)
     check_project_is_open(charity_project)
     if obj_in.name is not None:
@@ -97,6 +110,10 @@ async def delete_charity_project(
     project_id: int,
     session: AsyncSession = Depends(get_async_session),
 ):
+    """Delete a project that has not received any money.
+
+    Superusers only.
+    """
     charity_project = await check_charity_project_exists(project_id, session)
     check_project_has_no_investments(charity_project)
     charity_project = await charity_project_crud.remove(

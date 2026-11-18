@@ -1,3 +1,5 @@
+"""Abstract base model shared by charity projects and donations."""
+
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Integer
@@ -6,6 +8,12 @@ from app.core.db import Base
 
 
 class CharityDonationBase(Base):
+    """Common fields of charity projects and donations.
+
+    Both have a target amount, track how much of it has been invested
+    and are closed once the whole amount is invested.
+    """
+
     __abstract__ = True
 
     full_amount = Column(Integer, nullable=False)

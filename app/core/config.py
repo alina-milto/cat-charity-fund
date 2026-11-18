@@ -16,8 +16,11 @@ class Settings(BaseSettings):
     so JWT tokens are never signed with a publicly known key.
     """
 
-    app_title: str = 'Благотворительный фонд поддержки котиков QRKot'
-    description: str = 'Сервис для поддержки котиков!'
+    app_title: str = 'QRKot cat charity fund'
+    description: str = (
+        'Charity fund API: collects donations and distributes them '
+        'across cat support projects.'
+    )
     database_url: str = 'sqlite+aiosqlite:///./fastapi.db'
     secret: str = Field(min_length=MIN_SECRET_LENGTH)
     yandex_disk_token: Optional[str] = None
