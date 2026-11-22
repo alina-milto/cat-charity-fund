@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    name: Lint and test
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint with flake8
+        run: flake8 app
+
+      - name: Check that migrations match the models
+        env:
+          SECRET: ci-secret-key-that-is-long-enough-for-jwt
+          DATABASE_URL: sqlite+aiosqlite:///./ci.db
+        run: |
+          alembic upgrade head
+          alembic check
+
+      - name: Run tests
+        run: pytest
