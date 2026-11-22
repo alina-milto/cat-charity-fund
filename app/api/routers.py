@@ -1,3 +1,5 @@
+"""Main API router that combines all endpoint routers."""
+
 from fastapi import APIRouter
 
 from app.api.endpoints.charity_project import router as charity_project_router

@@ -1,3 +1,5 @@
+"""Excel report of closed projects uploaded to Yandex Disk."""
+
 import io
 from datetime import datetime, timedelta, timezone
 
@@ -11,11 +13,11 @@ from app.models.charity_project import CharityProject
 SECONDS_IN_HOUR = 3600
 SECONDS_IN_MINUTE = 60
 
-SHEET_NAME = 'Отчёт'
-FILE_NAME = 'Отчёт_от_{date}.xlsx'
-REPORT_TITLE = 'Отчёт от {date}'
-TABLE_HEADERS = ('Название проекта', 'Время сбора', 'Описание')
-TOTAL_LABEL = 'Всего проектов:'
+SHEET_NAME = 'Report'
+FILE_NAME = 'report_{date}.xlsx'
+REPORT_TITLE = 'Report of {date}'
+TABLE_HEADERS = ('Project name', 'Funding time', 'Description')
+TOTAL_LABEL = 'Total projects:'
 COLUMN_WIDTHS = (35, 20, 60)
 HEADER_BG_COLOR = '#2F75B5'
 TITLE_ROW = 0
@@ -24,18 +26,24 @@ FIRST_DATA_ROW = 2
 
 
 def format_time_delta(delta: timedelta) -> str:
+    """Format a duration as days and hours, or hours and minutes."""
     days = delta.days
     hours = delta.seconds // SECONDS_IN_HOUR
     minutes = (delta.seconds % SECONDS_IN_HOUR) // SECONDS_IN_MINUTE
     if days:
-        return f'{days} дн. {hours} ч.'
-    return f'{hours} ч. {minutes} мин.'
+        return f'{days} d {hours} h'
+    return f'{hours} h {minutes} min'
 
 
 async def create_simple_report(
     projects: list[CharityProject],
     yandex_client: YandexDiskClient,
 ) -> str:
+    """Build an Excel report, upload it to Yandex Disk, return its link.
+
+    The report lists closed projects sorted by funding time and ends
+    with the total number of projects.
+    """
     report_date = datetime.now(timezone.utc).strftime(settings.report_format)
     upload_url, file_path = await yandex_client.create_excel_file(
         FILE_NAME.format(date=report_date)

@@ -1,3 +1,5 @@
+"""Authentication setup: JWT backend, user manager and dependencies."""
+
 import logging
 from typing import Optional, Union
 
@@ -7,6 +9,7 @@ from fastapi_users import (
     FastAPIUsers,
     IntegerIDMixin,
     InvalidPasswordException,
+    schemas,
 )
 from fastapi_users.authentication import (
     AuthenticationBackend,
@@ -19,14 +22,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.db import get_async_session
 from app.models.user import User
-from app.schemas.user import UserCreate
 
 
-MIN_PASSWORD_LENGTH = 3
+MIN_PASSWORD_LENGTH = 8
 logger = logging.getLogger(__name__)
 
 
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):
+    """Yield the user database adapter for fastapi-users."""
     yield SQLAlchemyUserDatabase(session, User)
 
 
@@ -34,6 +37,7 @@ bearer_transport = BearerTransport(tokenUrl='auth/jwt/login')
 
 
 def get_jwt_strategy() -> JWTStrategy:
+    """Return the JWT strategy: tokens signed with the app secret."""
     return JWTStrategy(secret=settings.secret, lifetime_seconds=3600)
 
 
@@ -45,29 +49,35 @@ auth_backend = AuthenticationBackend(
 
 
 class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
+    """User manager with custom password rules and registration log."""
 
     async def validate_password(
         self,
         password: str,
-        user: Union[UserCreate, User],
+        user: Union[schemas.UC, User],
     ) -> None:
+        """Reject short passwords and passwords containing the email."""
         if len(password) < MIN_PASSWORD_LENGTH:
             raise InvalidPasswordException(
-                reason='Пароль должен содержать не менее '
-                       f'{MIN_PASSWORD_LENGTH} символов'
+                reason=(
+                    'Password must be at least '
+                    f'{MIN_PASSWORD_LENGTH} characters long.'
+                )
             )
         if user.email in password:
             raise InvalidPasswordException(
-                reason='Пароль не может содержать ваш email'
+                reason='Password must not contain your email.'
             )
 
     async def on_after_register(
         self, user: User, request: Optional[Request] = None
     ):
-        logger.info('Пользователь %s зарегистрирован.', user.email)
+        """Log every successful registration."""
+        logger.info('User %s registered.', user.email)
 
 
 async def get_user_manager(user_db=Depends(get_user_db)):
+    """Yield the user manager for fastapi-users."""
     yield UserManager(user_db)
 
 

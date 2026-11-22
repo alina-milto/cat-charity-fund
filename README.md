@@ -1,133 +1,50 @@
-# Благотворительный фонд поддержки котиков QRKot
+# Cat Charity Fund
 
-Приложение-API для Благотворительного фонда поддержки котиков QRKot на базе
-фреймворка FastAPI. Фонд собирает пожертвования на целевые проекты, связанные
-с поддержкой кошачьей популяции: медицинское обслуживание нуждающихся котиков,
-обустройство кошачьих колоний, корм оставшимся без попечения кошкам. Каждое
-поступившее пожертвование автоматически распределяется по открытым проектам.
+[![CI](https://github.com/alina-milto/cat-charity-fund/actions/workflows/main.yml/badge.svg)](https://github.com/alina-milto/cat-charity-fund/actions/workflows/main.yml)
+![Python](https://img.shields.io/badge/python-3.12-blue)
+![FastAPI](https://img.shields.io/badge/fastapi-0.135-green)
 
-Приложение поддерживает регистрацию и аутентификацию пользователей, а также
-разграничение прав доступа: часть операций доступна только суперпользователю.
-Суперпользователь может дополнительно сформировать Excel-отчёт по закрытым
-проектам и автоматически выгрузить его на Яндекс Диск.
+Async REST API for a charity fund that supports cats. Users donate money,
+and the service automatically distributes donations across fundraising
+projects. Superusers can export a report of funded projects to Yandex Disk.
 
-## Возможности
+**Stack:** Python, FastAPI, SQLAlchemy 2.0 (async), Alembic, Pydantic,
+fastapi-users (JWT), httpx, SQLite, pytest, GitHub Actions
 
-Приложение предоставляет следующее:
+## Highlights
 
-- регистрация и аутентификация пользователей (JWT);
-- создание, просмотр, редактирование и удаление целевых проектов
-  (доступно суперпользователю);
-- создание пожертвований зарегистрированными пользователями;
-- просмотр пользователем списка своих пожертвований;
-- автоматическое распределение средств: каждое новое пожертвование
-  распределяется по незакрытым проектам в порядке их создания, а каждый
-  новый проект забирает уже поступившие нераспределённые пожертвования;
-- автоматическое закрытие проекта при достижении требуемой суммы
-  с фиксацией даты закрытия;
-- формирование Excel-отчёта по закрытым проектам, отсортированным по
-  скорости сбора средств, и автоматическая выгрузка отчёта на Яндекс Диск
-  с получением публичной ссылки (доступно суперпользователю).
+- **Automatic investment:** each new donation or project is matched with
+  open ones in first-in, first-out order; fully funded items close
+  automatically
+- **Report to Yandex Disk:** an Excel report of closed projects, sorted by
+  funding speed, uploaded through the Yandex Disk REST API with an async
+  httpx client
+- **95 tests** and CI that runs flake8, checks migrations against models
+  and runs the tests on every pull request
+- JWT authentication, required strong secret, validation of all input
 
-## Права доступа
-
-- Анонимный пользователь может просматривать список целевых проектов.
-- Зарегистрированный пользователь может создавать пожертвования
-  и просматривать список своих пожертвований.
-- Суперпользователь может создавать, редактировать и удалять проекты,
-  просматривать список всех пожертвований, а также формировать отчёт
-  по проектам и выгружать его на Яндекс Диск.
-
-## Технологии
-
-- Python 3.10+
-- FastAPI
-- FastAPI Users
-- SQLAlchemy (асинхронный режим)
-- Pydantic v2
-- Alembic
-- xlsxwriter — формирование Excel-отчётов
-- httpx — взаимодействие с API Яндекс Диска
-
-## Установка и запуск
-
-Клонируйте репозиторий и перейдите в него:
+## Quick start
 
 ```bash
-git clone https://github.com/azulqilin/QRkot-spreadsheets.git
-cd QRkot-spreadsheets
-```
-
-Создайте и активируйте виртуальное окружение:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-Обновите менеджер пакетов pip и установите зависимости:
-
-```bash
-python -m pip install --upgrade pip
+git clone https://github.com/alina-milto/cat-charity-fund.git
+cd cat-charity-fund
+python -m venv venv
+source venv/bin/activate        # Windows: source venv/Scripts/activate
 pip install -r requirements.txt
-```
-
-Создайте в корне проекта файл `.env` и укажите в нём адрес базы данных
-и секретный ключ:
-
-```bash
-DATABASE_URL=sqlite+aiosqlite:///./fastapi.db
-SECRET=ваш_секретный_ключ
-```
-
-Для работы отчёта на Яндекс Диске добавьте в `.env` OAuth-токен:
-
-```bash
-YANDEX_DISK_TOKEN=ваш_oauth_токен
-```
-
-Токен выдаётся один раз при регистрации приложения на
-[oauth.yandex.ru](https://oauth.yandex.ru/) с правами на Яндекс Диск.
-Поле необязательное: без токена приложение запускается штатно, но обращение
-к эндпоинту отчёта вернёт ошибку 503.
-
-Примените миграции:
-
-```bash
+cp .env.example .env            # set SECRET, see the comment in the file
 alembic upgrade head
+uvicorn app.main:app
 ```
 
-## Использование
+Open http://127.0.0.1:8000/docs for the interactive API documentation.
 
-Запуск приложения выполняется из корневой директории проекта:
+## Tests
 
 ```bash
-uvicorn app.main:app --reload
+pip install -r requirements-dev.txt
+pytest
 ```
 
-После запуска интерактивная документация доступна по адресам:
+## Author
 
-- Swagger — http://127.0.0.1:8000/docs
-- ReDoc — http://127.0.0.1:8000/redoc
-
-## Результаты
-
-После запуска приложение обслуживает следующие группы эндпоинтов:
-
-- `/charity_project/` — создание, просмотр, редактирование и удаление
-  целевых проектов фонда.
-- `/donation/` — создание пожертвований и просмотр их списка.
-- `/yandex/` — формирование Excel-отчёта по закрытым проектам и его
-  выгрузка на Яндекс Диск с возвратом публичной ссылки
-  (доступно суперпользователю).
-- `/auth/` и `/users/` — регистрация, аутентификация и управление
-  пользователями.
-
-Распределение средств между проектами и пожертвованиями происходит
-автоматически при каждом создании проекта или пожертвования.
-
-## Автор
-
-Алина Мильто
-🔗 [GitHub](https://github.com/azulqilin)
-📧 azul.qilin@gmail.com
+**Alina Milto** — [GitHub](https://github.com/alina-milto)

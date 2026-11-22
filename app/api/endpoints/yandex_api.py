@@ -1,5 +1,9 @@
+"""Report endpoint: closed projects exported to Yandex Disk."""
+
+import logging
 from http import HTTPStatus
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,9 +14,10 @@ from app.crud.charity_project import charity_project_crud
 from app.services.yandex_api import create_simple_report
 
 
-PROJECTS_NOT_FOUND = (
-    'Закрытые проекты не найдены, отчёт формировать не из чего.')
-REPORT_ERROR = 'Не удалось сформировать отчёт: {error}'
+PROJECTS_NOT_FOUND = 'No closed projects yet, nothing to report.'
+YANDEX_DISK_ERROR = 'Yandex Disk is unavailable, please try again later.'
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -21,18 +26,18 @@ router = APIRouter()
     '/',
     response_model=str,
     dependencies=[Depends(current_superuser)],
-    summary='Сформировать отчёт на Яндекс Диске',
+    summary='Create a report on Yandex Disk',
     description=(
-        'Формирует Excel-отчёт по закрытым проектам, '
-        'отсортированным по скорости сбора средств, '
-        'загружает его на Яндекс Диск и возвращает публичную ссылку. '
-        'Только для суперпользователей.'
+        'Builds an Excel report of closed projects sorted by funding '
+        'speed, uploads it to Yandex Disk and returns a public link. '
+        'Superusers only.'
     ),
 )
 async def create_report(
     session: AsyncSession = Depends(get_async_session),
     yandex_client: YandexDiskClient = Depends(get_yandex_client),
 ) -> str:
+    """Upload a report of closed projects and return its link."""
     projects = await charity_project_crud.get_projects_by_completion_rate(
         session
     )
@@ -43,10 +48,9 @@ async def create_report(
         )
     try:
         return await create_simple_report(projects, yandex_client)
-    except HTTPException:
-        raise
-    except Exception as error:
+    except httpx.HTTPError:
+        logger.exception('Failed to upload the report to Yandex Disk.')
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=REPORT_ERROR.format(error=error),
+            status_code=HTTPStatus.BAD_GATEWAY,
+            detail=YANDEX_DISK_ERROR,
         )

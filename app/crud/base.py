@@ -1,3 +1,5 @@
+"""Base class with common database operations."""
+
 from typing import Optional
 
 from fastapi.encoders import jsonable_encoder
@@ -8,21 +10,25 @@ from app.models.user import User
 
 
 class CRUDBase:
+    """Generic create, read, update and delete operations for a model."""
 
     def __init__(self, model):
         self.model = model
 
     async def get(self, obj_id: int, session: AsyncSession):
+        """Return the object with the given id or None."""
         db_obj = await session.execute(
             select(self.model).where(self.model.id == obj_id)
         )
         return db_obj.scalars().first()
 
     async def get_multi(self, session: AsyncSession):
+        """Return all objects."""
         db_objs = await session.execute(select(self.model))
         return db_objs.scalars().all()
 
     async def get_not_fully_invested(self, session: AsyncSession):
+        """Return open objects, oldest first (first in, first out)."""
         db_objs = await session.execute(
             select(self.model).where(
                 self.model.fully_invested.is_(False)
@@ -37,6 +43,11 @@ class CRUDBase:
             user: Optional[User] = None,
             commit: bool = True,
     ):
+        """Create an object, optionally owned by ``user``.
+
+        With ``commit=False`` the object is only added to the session,
+        so the caller can change it further and commit everything at once.
+        """
         obj_in_data = obj_in.model_dump()
         if user is not None:
             obj_in_data['user_id'] = user.id
@@ -48,6 +59,7 @@ class CRUDBase:
         return db_obj
 
     async def update(self, db_obj, obj_in, session: AsyncSession):
+        """Update only the fields that were sent in the request."""
         obj_data = jsonable_encoder(db_obj)
         update_data = obj_in.model_dump(exclude_unset=True)
         for field in obj_data:
@@ -59,6 +71,7 @@ class CRUDBase:
         return db_obj
 
     async def remove(self, db_obj, session: AsyncSession):
+        """Delete the object and return it."""
         await session.delete(db_obj)
         await session.commit()
         return db_obj
